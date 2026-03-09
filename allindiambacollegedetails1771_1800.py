@@ -8464,30 +8464,39 @@ def parse_faculty_full_html(driver,URLS):
     driver.get(URLS["faculty"])
     wait = WebDriverWait(driver, 15)
 
-    # section = wait.until(
-    #     EC.presence_of_element_located(
-    #         (By.CSS_SELECTOR, "div.wikkiContents.faqAccordian")
-    #     )
-    # )
+    from selenium.common.exceptions import StaleElementReferenceException
+    
     try:
         section = wait.until(
             EC.presence_of_element_located(
-                (By.CSS_SELECTOR,"div.wikkiContents.faqAccordian")
+                (By.CSS_SELECTOR, "div.wikkiContents.faqAccordian")
             )
         )
     except:
         print("⚠️ parse_faculty_full_html not available, skipping")
         return None
-
-    # 🔥 Scroll for lazy content
-    driver.execute_script(
-        "arguments[0].scrollIntoView({block:'center'});", section
-    )
-    time.sleep(2)
-
-    html = driver.execute_script(
-        "return arguments[0].innerHTML;", section
-    )
+    
+    try:
+        # Scroll to section
+        driver.execute_script(
+            "arguments[0].scrollIntoView({block:'center'});", section
+        )
+        time.sleep(2)
+    
+        # 🔁 Re-locate element after scroll (DOM might change)
+        section = driver.find_element(By.CSS_SELECTOR, "div.wikkiContents.faqAccordian")
+    
+        html = driver.execute_script(
+            "return arguments[0].innerHTML;", section
+        )
+    
+    except StaleElementReferenceException:
+        print("⚠️ Stale element detected, retrying...")
+    
+        section = driver.find_element(By.CSS_SELECTOR, "div.wikkiContents.faqAccordian")
+        html = driver.execute_script(
+            "return arguments[0].innerHTML;", section
+        )
 
     soup = BeautifulSoup(html, "html.parser")
 
